@@ -12,7 +12,7 @@ class ToyModel(nn.Module):
         super().__init__()
         self.S = S
         self.W: torch.Tensor = torch.rand(num_features, num_dimensions)
-        self.bias = torch.zeros([])
+        self.bias = torch.zeros(num_features)
         
     def forward(self, x):
         # First, the input vector of size (num_features)
