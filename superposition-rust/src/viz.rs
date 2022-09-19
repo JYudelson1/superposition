@@ -32,3 +32,10 @@ pub(crate) fn print_colored_vector<const F: usize>(arr: &[f32; F]){
     println!();
     println!();
 }
+
+pub(crate) fn pprint<const F: usize, const D: usize>
+    (arr: &[[f32; F]; D]){
+    for row in arr.iter() {
+        println!("{:.2?}", row)
+    }
+}
