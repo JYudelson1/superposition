@@ -54,7 +54,7 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
             let i_j_dot_product: Tensor1D<D> = mul(
                 self.weights.duplicate().select(&i), 
                 &self.weights.duplicate().select(&j));
-            s = s + sum(i_j_dot_product).data()
+            s = s + sum(square(i_j_dot_product)).data()
         }
         s
     }
