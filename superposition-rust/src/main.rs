@@ -2,6 +2,8 @@ use dfdx::prelude::*;
 use rand::prelude::{StdRng, SeedableRng};
 use lazy_pbar::pbar;
 
+mod viz;
+
 struct ToyModel<const F: usize, const D: usize>{
     weights: Tensor2D<F, D>,
     bias: Tensor1D<F>
@@ -114,7 +116,7 @@ fn imp_loss<const F: usize, const B: usize, T: Tape>(pred: Tensor2D<B, F, T>, ta
 
 fn pprint<const F: usize, const D: usize>(arr: &[[f32; F]; D]){
     for row in arr.iter() {
-        println!("{:?}", row)
+        println!("{:.2?}", row)
     }
 }
 
@@ -122,12 +124,12 @@ fn main() {
     const F: usize = 20;
     const D: usize = 5;
     const B: usize = 128;
-    const S: f32 = 0.0;
-    const N: usize = 10_000;
+    const S: f32 = 0.7;
+    const N: usize = 100_000;
 
     let mut importance: Tensor1D<F> = Tensor1D::new([0.0;F]);
     for i in 0..F{
-        importance.mut_data()[i] = 0.9f32.powf(i as f32);
+        importance.mut_data()[i] = 0.7f32.powf(i as f32);
     }
 
     let mut rng = StdRng::seed_from_u64(0);
@@ -142,7 +144,7 @@ fn main() {
 
     //let data: Tensor1D<F> = generate_data(0.5, &mut rng);
     m.print_wtw();
-    for _i in pbar(0..N, N) {
+    for i in pbar(0..N, N) {
         let data: Tensor2D<B, F> = generate_batch(S, &mut rng);
         let out: Tensor2D<B, F, OwnedTape> = m.forward(data.trace());
         let loss = imp_loss(out, &data, importance.duplicate());
@@ -151,8 +153,17 @@ fn main() {
             Ok(()) => (),
             Err(error) => print!("{:#?}", error)
         }
+        if i % 10_000 == 0 {
+            println!("W^T x W Matrix at i = {}:", i);
+            viz::print_colored_matrix(&m.wtw_data());
+            println!("Bias:");
+            viz::print_colored_vector(&m.bias.data())
+        }
     }
     
     m.print_wtw();
+    viz::print_colored_matrix(&m.wtw_data());
+    println!("Bias:");
+    viz::print_colored_vector(&m.bias.data())
 
 }
