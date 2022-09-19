@@ -33,5 +33,5 @@ pub(crate) fn exp_importance<const F: usize>(base: f32) -> Tensor1D<F>{
 }
 
 pub(crate) fn frobenius<const F: usize, const D: usize>(matrix: Tensor2D<F, D>) -> f32{
-    *sum(square(matrix)).data()
+    *sqrt(sum(square(matrix))).data()
 }
