@@ -5,13 +5,15 @@ Anthropic Paper is [here](https://transformer-circuits.pub/2022/toy_model/index.
 Working through the paper, just to make sure I get it.
 
 Todos:
-- [ ] Write the model (W/ different sparsities)
+- [x] Write the model (W/ different sparsities)
   - [x] Building model
-  - [ ] Optimizer + train code (taking into acct importance)
-- [ ] Random data generation (taking into acct sparsity)
+  - [x] Optimizer + train code (taking into acct importance)
+- [x] Random data generation (taking into acct sparsity)
 - [ ] Run through some of the experiments, esp:
   - [ ] Phase diagrams
-  - [ ] W<sup>T</sup>W at different sparsities
+  - [x] W<sup>T</sup>W at different sparsities
   - [ ] Sparsity vs dimensions/feature ratio
 - [ ] Figure out how to make those pretty graphs
-- [ ] (Maybe) Replicate in Rust, using dfdx (nice bc statically typed tensor sizes, mmmm)
+- [x] (Maybe) Replicate in Rust, using dfdx (nice bc statically typed tensor sizes, mmmm)
+
+**EDIT**: Moving primarily to Rust, since statically sized tensors are your friend.
