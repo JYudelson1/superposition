@@ -5,6 +5,12 @@ use rand::prelude::StdRng;
 use super::data;
 use super::viz;
 
+#[derive(Debug, Clone)]
+pub(crate) struct ToyModel<const F: usize, const D: usize>{
+    weights: Tensor2D<F, D>,
+    bias: Tensor1D<F>
+}
+
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum Experiment {
     WtW
@@ -20,29 +26,6 @@ pub(crate) struct TrainConfig<const F: usize, const D: usize, const B: usize>{
     experiment: Experiment
 }
 
-impl<const F: usize, const D: usize, const B: usize> TrainConfig<F, D, B> {
-    pub(crate) fn new(sparsity: f32,
-                      n_iter: usize,
-                      importance: Tensor1D<F>,
-                      opt: Adam<ToyModel<F, D>>,
-                      rng: StdRng,
-                      experiment: Experiment) -> TrainConfig<F, D, B> {
-        TrainConfig { 
-            sparsity: sparsity, 
-            n_iter: n_iter, 
-            importance: importance, 
-            opt: opt, 
-            rng: rng,
-            experiment: experiment }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct ToyModel<const F: usize, const D: usize>{
-    weights: Tensor2D<F, D>,
-    bias: Tensor1D<F>
-}
-
 impl<const F: usize, const D: usize> ToyModel<F, D> {
     pub(crate) fn new() -> ToyModel<F,D> {
         ToyModel {
@@ -54,12 +37,8 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
         *matmul_transpose(self.weights.duplicate(), &self.weights).data()
     }
     fn w_norm(&self, i: usize) -> f32{
-        let mut w_sq = 0.0;
-
-        for x_i in self.weights.data()[i] {
-            w_sq = w_sq + x_i.powi(2);
-        }
-        w_sq.powf(0.5)
+        let feature: Tensor1D<D, NoneTape> = self.weights.duplicate().select(&i);
+        *sqrt(sum(square(feature))).data()
     }
     fn all_feature_norms(&self) -> [f32; F]{
         let mut norms = [0.0; F];
@@ -67,6 +46,24 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
             norms[i] = self.w_norm(i);
         }
         norms
+    }
+    fn get_superposition(&self, i: usize) -> f32{
+        let mut s = 0.0;
+        for j in 0..F {
+            if i==j {continue};
+            let i_j_dot_product: Tensor1D<D> = mul(
+                self.weights.duplicate().select(&i), 
+                &self.weights.duplicate().select(&j));
+            s = s + sum(i_j_dot_product).data()
+        }
+        s
+    }
+    fn get_all_superposiiton(&self) -> [f32; F]{
+        let mut superpositions = [0.0; F];
+        for i in 0..F {
+            superpositions[i] = self.get_superposition(i);
+        }
+        superpositions
     }
     fn perform_experiment(&self, exp: Experiment){
         match exp {
@@ -77,6 +74,8 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
                 viz::print_colored_vector(self.bias.data());
                 println!("Feature Norms:");
                 viz::print_colored_vector(&self.all_feature_norms());
+                println!("Superposition Measure:");
+                viz::print_colored_vector(&self.get_all_superposiiton());
             }
         }
     }
@@ -142,5 +141,22 @@ impl<const F: usize, const D: usize, const B: usize, H: Tape>
     }
     fn forward_mut(&mut self, input: Tensor2D<B, F, H>) -> Self::Output {
         self.forward(input)
+    }
+}
+
+impl<const F: usize, const D: usize, const B: usize> TrainConfig<F, D, B> {
+    pub(crate) fn new(sparsity: f32,
+                      n_iter: usize,
+                      importance: Tensor1D<F>,
+                      opt: Adam<ToyModel<F, D>>,
+                      rng: StdRng,
+                      experiment: Experiment) -> TrainConfig<F, D, B> {
+        TrainConfig { 
+            sparsity: sparsity, 
+            n_iter: n_iter, 
+            importance: importance, 
+            opt: opt, 
+            rng: rng,
+            experiment: experiment }
     }
 }
