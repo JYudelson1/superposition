@@ -24,23 +24,37 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
         let wtw = self.wtw_data();
         pprint(&wtw);
     }
-}
+    fn w_norm(&self, i: usize) -> f32{
+        let mut w_sq = 0.0;
 
-impl<const F: usize, const D: usize> CanUpdateWithGradients for ToyModel<F, D> {
+        for x_i in self.weights.data()[i] {
+            w_sq = w_sq + x_i.powi(2);
+        }
+        w_sq.powf(0.5)
+    }
+    fn all_feature_norms(&self) -> [f32; F]{
+        let mut norms = [0.0; F];
+        for i in 0..F {
+            norms[i] = self.w_norm(i);
+        }
+        norms
+    }
+}
+impl<const F: usize, const D: usize> 
+    CanUpdateWithGradients for ToyModel<F, D> {
     fn update<G: GradientProvider>(&mut self, grads: &mut G, unused: &mut UnusedTensors) {
         self.weights.update(grads, unused);
         self.bias.update(grads, unused);
 
     }
 }
-
-impl<const F: usize, const D: usize> ResetParams for ToyModel<F,D> {
+impl<const F: usize, const D: usize> 
+    ResetParams for ToyModel<F,D> {
     fn reset_params<R: rand::Rng>(&mut self, rng: &mut R) {
         self.weights = Tensor2D::rand(rng);
         self.bias = Tensor1D::zeros();
     }
 }
-
 impl<const F: usize, const D: usize, H: Tape> 
     Module<Tensor1D<F, H>> for ToyModel<F, D> {
     type Output = Tensor1D<F, H>;
@@ -57,7 +71,6 @@ impl<const F: usize, const D: usize, H: Tape>
         self.forward(input)
     }
 }
-
 impl<const F: usize, const D: usize, const B: usize, H: Tape> 
     Module<Tensor2D<B, F, H>> for ToyModel<F, D> {
     type Output = Tensor2D<B, F, H>;
@@ -73,21 +86,6 @@ impl<const F: usize, const D: usize, const B: usize, H: Tape>
     fn forward_mut(&mut self, input: Tensor2D<B, F, H>) -> Self::Output {
         self.forward(input)
     }
-}
-
-fn _generate_data<const F: usize, R: rand::Rng>
-    (s: f32, rng: &mut R) -> Tensor1D<F>{
-    let mut data = Tensor1D::<F>::rand(rng);
-    if s == 0.0 {return data}
-
-    let mask = Tensor1D::<F>::rand(rng);
-    for (i, el) in mask.data().iter().enumerate() {
-        if *el <= s {
-            data.mut_data()[i] = 0.0
-        }
-    }
-
-    data
 }
 
 fn generate_batch<const F: usize, const B: usize, R: rand::Rng>
@@ -106,26 +104,26 @@ fn generate_batch<const F: usize, const B: usize, R: rand::Rng>
 
     data
 }
-
-fn imp_loss<const F: usize, const B: usize, T: Tape>(pred: Tensor2D<B, F, T>, targ: &Tensor2D<B, F, NoneTape>, imp: Tensor1D<F>) -> Tensor0D<T>{
+fn imp_loss<const F: usize, const B: usize, T: Tape>
+    (pred: Tensor2D<B, F, T>, targ: &Tensor2D<B, F, NoneTape>, imp: Tensor1D<F>) -> Tensor0D<T>{
     let diff_sq = square(sub(pred, targ));
     let full_imp: Tensor2D<B, F> = imp.broadcast1();
     let adjusted_diff = mul(diff_sq, &full_imp);
     mean(adjusted_diff)
 }
-
-fn pprint<const F: usize, const D: usize>(arr: &[[f32; F]; D]){
+fn pprint<const F: usize, const D: usize>
+    (arr: &[[f32; F]; D]){
     for row in arr.iter() {
         println!("{:.2?}", row)
     }
 }
 
 fn main() {
-    const F: usize = 20;
-    const D: usize = 5;
-    const B: usize = 128;
-    const S: f32 = 0.7;
-    const N: usize = 100_000;
+    const F: usize = 20; // Num features
+    const D: usize = 5;  // Num dimensions
+    const BATCH_SIZE: usize = 128;
+    const SPARSITY: f32 = 0.7;
+    const N_ITER: usize = 100_000;
 
     let mut importance: Tensor1D<F> = Tensor1D::new([0.0;F]);
     for i in 0..F{
@@ -142,11 +140,10 @@ fn main() {
         eps: 1e-8,
     });
 
-    //let data: Tensor1D<F> = generate_data(0.5, &mut rng);
     m.print_wtw();
-    for i in pbar(0..N, N) {
-        let data: Tensor2D<B, F> = generate_batch(S, &mut rng);
-        let out: Tensor2D<B, F, OwnedTape> = m.forward(data.trace());
+    for i in pbar(0..N_ITER, N_ITER) {
+        let data: Tensor2D<BATCH_SIZE, F> = generate_batch(SPARSITY, &mut rng);
+        let out: Tensor2D<BATCH_SIZE, F, OwnedTape> = m.forward(data.trace());
         let loss = imp_loss(out, &data, importance.duplicate());
         let gradients: Gradients = loss.backward();
         match opt.update(&mut m, gradients) {
@@ -157,13 +154,16 @@ fn main() {
             println!("W^T x W Matrix at i = {}:", i);
             viz::print_colored_matrix(&m.wtw_data());
             println!("Bias:");
-            viz::print_colored_vector(&m.bias.data())
+            viz::print_colored_vector(&m.bias.data());
+            println!("Feature Norms:");
+            viz::print_colored_vector(&m.all_feature_norms());
         }
     }
     
-    m.print_wtw();
     viz::print_colored_matrix(&m.wtw_data());
     println!("Bias:");
-    viz::print_colored_vector(&m.bias.data())
+    viz::print_colored_vector(&m.bias.data());
+    println!("Feature Norms:");
+    viz::print_colored_vector(&m.all_feature_norms());
 
 }
