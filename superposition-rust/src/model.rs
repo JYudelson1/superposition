@@ -13,7 +13,8 @@ pub(crate) struct ToyModel<const F: usize, const D: usize>{
 
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum Experiment {
-    WtW
+    WtW,
+    DStar
 }
 
 #[derive(Debug)]
@@ -48,13 +49,14 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
         norms
     }
     fn get_superposition(&self, i: usize) -> f32{
+        //TODO: Make sure this is working right
         let mut s = 0.0;
         for j in 0..F {
             if i==j {continue};
             let i_j_dot_product: Tensor1D<D> = mul(
                 self.weights.duplicate().select(&i), 
                 &self.weights.duplicate().select(&j));
-            s = s + sum(square(i_j_dot_product)).data()
+            s = s + sum(square(i_j_dot_product)).data();
         }
         s
     }
@@ -65,8 +67,11 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
         }
         superpositions
     }
-    fn perform_experiment(&self, exp: Experiment){
-        match exp {
+    fn d_star(&self) -> f32 {
+        (D as f32) / (data::frobenius(self.weights.duplicate()))
+    }
+    fn perform_experiment<const B: usize>(&self, config: &TrainConfig<F, D, B>){
+        match config.experiment {
             Experiment::WtW => {
                 println!("W^T x W Matrix:");
                 viz::print_colored_matrix(&self.wtw_data());
@@ -76,6 +81,12 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
                 viz::print_colored_vector(&self.all_feature_norms());
                 println!("Superposition Measure:");
                 viz::print_colored_vector(&self.get_all_superposiiton());
+            },
+            Experiment::DStar => {
+                print!("\nAt sparsity = {} (1/(1-S) = {}), D* = {}\n\n", 
+                        config.sparsity, 
+                        1.0 / (1.0 - config.sparsity),
+                        self.d_star());
             }
         }
     }
@@ -90,10 +101,10 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
                 Err(error) => print!("{:#?}", error)
             }
             if i % 10_000 == 0 {
-                self.perform_experiment(config.experiment)
+                self.perform_experiment(&config);
             }
         }
-        self.perform_experiment(config.experiment)
+        self.perform_experiment(&config);
     }
 }
 impl<const F: usize, const D: usize> 
