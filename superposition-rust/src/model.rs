@@ -2,8 +2,7 @@ use dfdx::prelude::*;
 use lazy_pbar::pbar;
 use rand::prelude::StdRng;
 
-use super::data;
-use super::viz;
+use super::data::*;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ToyModel<const F: usize, const D: usize>{
@@ -11,11 +10,6 @@ pub(crate) struct ToyModel<const F: usize, const D: usize>{
     bias: Tensor1D<F>
 }
 
-#[derive(Debug, Copy, Clone)]
-pub(crate) enum Experiment {
-    WtW,
-    DStar
-}
 
 #[derive(Debug)]
 pub(crate) struct TrainConfig<const F: usize, const D: usize, const B: usize>{
@@ -24,7 +18,8 @@ pub(crate) struct TrainConfig<const F: usize, const D: usize, const B: usize>{
     importance: Tensor1D<F>,
     opt: Adam<ToyModel<F, D>>,
     rng: StdRng,
-    experiment: Experiment
+    experiment: Experiment,
+    verbosity: Verbosity
 }
 
 impl<const F: usize, const D: usize> ToyModel<F, D> {
@@ -68,43 +63,50 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
         superpositions
     }
     fn d_star(&self) -> f32 {
-        (D as f32) / (data::frobenius(self.weights.duplicate()))
+        (D as f32) / (frobenius(self.weights.duplicate()))
     }
-    fn perform_experiment<const B: usize>(&self, config: &TrainConfig<F, D, B>){
+    fn perform_experiment<const B: usize>(&self, config: &TrainConfig<F, D, B>) -> ExperimentResult<F>{
         match config.experiment {
             Experiment::WtW => {
-                println!("W^T x W Matrix:");
-                viz::print_colored_matrix(&self.wtw_data());
-                println!("Bias:");
-                viz::print_colored_vector(self.bias.data());
-                println!("Feature Norms:");
-                viz::print_colored_vector(&self.all_feature_norms());
-                println!("Superposition Measure:");
-                viz::print_colored_vector(&self.get_all_superposiiton());
+                ExperimentResult::WtW(WtWResult {
+                    wtw: self.wtw_data(),
+                    bias: self.bias.data().clone(),
+                    feature_norms: self.all_feature_norms(),
+                    superpositions: self.get_all_superposiiton()
+                })
             },
             Experiment::DStar => {
-                print!("\nAt sparsity = {} (1/(1-S) = {}), D* = {}\n\n", 
-                        config.sparsity, 
-                        1.0 / (1.0 - config.sparsity),
-                        self.d_star());
+                ExperimentResult::DStar(DStarResult {
+                    sparsity: config.sparsity,
+                    dstar: self.d_star()
+                })
+                
             }
         }
     }
-    pub(crate) fn train_loop<const B: usize>(&mut self, mut config: TrainConfig<F, D, B>){
+    pub(crate) fn train_loop<const B: usize>(&mut self, mut config: TrainConfig<F, D, B>) -> ExperimentResult<F>{
         for i in pbar(0..config.n_iter, config.n_iter) {
-            let data: Tensor2D<B, F> = data::generate_batch(config.sparsity, &mut config.rng);
+            let data: Tensor2D<B, F> = generate_batch(config.sparsity, &mut config.rng);
             let out: Tensor2D<B, F, OwnedTape> = self.forward(data.trace());
-            let loss = data::imp_loss(out, &data, config.importance.duplicate());
+            let loss = imp_loss(out, &data, config.importance.duplicate());
             let gradients: Gradients = loss.backward();
             match config.opt.update(self, gradients) {
                 Ok(()) => (),
                 Err(error) => print!("{:#?}", error)
             }
-            if i % 10_000 == 0 {
-                self.perform_experiment(&config);
+            match config.verbosity {
+                Verbosity::Full(x) if i % x == 0 => {
+                    let intermediate_res = self.perform_experiment(&config);
+                    intermediate_res.print_experiment();
+                }
+                _ => ()
             }
         }
-        self.perform_experiment(&config);
+        let final_res = self.perform_experiment(&config);
+        if config.verbosity != Verbosity::Quiet{
+            final_res.print_experiment();
+        }
+        final_res
     }
 }
 impl<const F: usize, const D: usize> 
@@ -161,13 +163,16 @@ impl<const F: usize, const D: usize, const B: usize> TrainConfig<F, D, B> {
                       importance: Tensor1D<F>,
                       opt: Adam<ToyModel<F, D>>,
                       rng: StdRng,
-                      experiment: Experiment) -> TrainConfig<F, D, B> {
+                      experiment: Experiment,
+                      verbosity: Verbosity) -> TrainConfig<F, D, B> {
         TrainConfig { 
             sparsity: sparsity, 
             n_iter: n_iter, 
             importance: importance, 
             opt: opt, 
             rng: rng,
-            experiment: experiment }
+            experiment: experiment ,
+            verbosity: verbosity
+        }
     }
 }
