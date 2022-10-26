@@ -1,6 +1,7 @@
 use dfdx::prelude::*;
 use super::viz;
 
+#[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub(crate) enum Experiment {
     WtW,
@@ -55,6 +56,7 @@ impl<const F: usize> ExperimentResult<F> {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub(crate) enum Verbosity {
     Full(usize),
