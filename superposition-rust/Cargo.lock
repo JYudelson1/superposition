@@ -280,9 +280,9 @@ dependencies = [
 
 [[package]]
 name = "lazy-pbar"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7768fc412044cdfee60c5ac35095928c37b292de72f4d996f71d7f888c884037"
+checksum = "2f26111f64ac45fa55fadcf35ceb0f5a463067a9cc51cc788087d93f14b27d08"
 dependencies = [
  "indicatif",
 ]
@@ -472,6 +472,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e25dfac463d778e353db5be2449d1cce89bd6fd23c9f1ea21310ce6e5a1b29c4"
 
 [[package]]
+name = "serde"
+version = "1.0.147"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d193d69bae983fc11a79df82342761dfbf28a99fc8d203dca4c3c1b590948965"
+
+[[package]]
 name = "sha1"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -507,6 +513,7 @@ dependencies = [
  "dfdx",
  "lazy-pbar",
  "rand",
+ "toml",
 ]
 
 [[package]]
@@ -536,6 +543,15 @@ name = "time-macros"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42657b1a6f4d817cda8e7a0ace261fe0cc946cf3a80314390b22cc61ae080792"
+
+[[package]]
+name = "toml"
+version = "0.5.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d82e1a7758622a465f8cee077614c73484dac5b836c02ff6a40d5d1010324d7"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "typenum"

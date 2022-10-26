@@ -1,0 +1,16 @@
+[training]
+batch_size = 1024
+epochs = 1_000_000
+randseed = 0
+
+[experiment]
+experiment_name = "DStar" # "DStar" or "WtW"
+num_features = 100 
+num_dimensions = 7
+sparsities = [0.0, 25.0, 50.0, 80.0, 90.0, 95.0, 99.0, 99.9, 99.99]
+importance_decay = 1.0
+
+[verbosity]
+print_at_end = true
+print_every_n_steps = false
+n_steps = 100_000
