@@ -14,6 +14,7 @@ pub(crate) struct WtWResult<const F: usize> {
     pub(crate) bias: [f32; F],
     pub(crate) feature_norms: [f32; F],
     pub(crate) superpositions: [f32; F],
+    pub(crate) sparsity: f32
 }
 
 #[derive(Debug, Clone)]
@@ -31,7 +32,7 @@ impl<const F: usize> ExperimentResult<F> {
     pub(crate) fn print_experiment(&self) {
         match self {
             ExperimentResult::WtW(wtw_result) => {
-                println!("W^T x W Matrix:");
+                println!("W^T x W Matrix (At sparsity = {}):", wtw_result.sparsity);
                 viz::print_colored_matrix(&wtw_result.wtw);
                 println!("Bias:");
                 viz::print_colored_vector(&wtw_result.bias);

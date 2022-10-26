@@ -72,7 +72,8 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
                     wtw: self.wtw_data(),
                     bias: self.bias.data().clone(),
                     feature_norms: self.all_feature_norms(),
-                    superpositions: self.get_all_superposiiton()
+                    superpositions: self.get_all_superposiiton(),
+                    sparsity: config.sparsity
                 })
             },
             Experiment::DStar => {
