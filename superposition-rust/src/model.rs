@@ -85,7 +85,7 @@ impl<const F: usize, const D: usize> ToyModel<F, D> {
         }
     }
     pub(crate) fn train_loop<const B: usize>(&mut self, mut config: TrainConfig<F, D, B>) -> ExperimentResult<F>{
-        for i in pbar(0..config.n_iter, config.n_iter) {
+        for i in pbar(0..config.n_iter) {
             let data: Tensor2D<B, F> = generate_batch(config.sparsity, &mut config.rng);
             let out: Tensor2D<B, F, OwnedTape> = self.forward(data.trace());
             let loss = imp_loss(out, &data, config.importance.duplicate());
