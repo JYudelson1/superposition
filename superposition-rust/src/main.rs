@@ -1,3 +1,4 @@
+use data::{ExperimentResult, Verbosity};
 use dfdx::prelude::*;
 use lazy_pbar::pbar;
 use rand::prelude::{StdRng, SeedableRng};
@@ -10,6 +11,8 @@ use model::{ToyModel, TrainConfig};
 use parsed_config::*;
 
 fn main() {
+
+    let mut all_results: Vec<ExperimentResult<F>> = Vec::new();
     
     for s in pbar(SPARSITIES.into_iter()){
         // Reset these for each sparsity
@@ -21,7 +24,7 @@ fn main() {
         let mut m: ToyModel<F, D> = ToyModel::new();
         m.reset_params(&mut rng);
         
-        m.train_loop(
+        let result = m.train_loop(
             TrainConfig::<F, D, BATCH_SIZE>::new(
                 s,
                 N_ITER, 
@@ -29,8 +32,15 @@ fn main() {
                 opt, 
                 rng, 
                 EXPERIMENT,
-                VERBOSITY
+                parsed_config::VERBOSITY
             )
         );
+        all_results.push(result);
+    }
+    
+    if parsed_config::VERBOSITY == Verbosity::Quiet {
+        for res in all_results{
+            res.print_experiment();
+        }
     }
 }
