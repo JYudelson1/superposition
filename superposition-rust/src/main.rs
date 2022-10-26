@@ -17,8 +17,6 @@ fn main() {
     //TODO: Turn this into a congif.toml file
     
     for s in pbar((0..100).map(|i| i as f32 / 100.0), 100){    
-        // NOTE: DStar and WtW need different main loops
-        // TODO: Move that into model for cleaner code
         let importance: Tensor1D<F> = data::exp_importance(1.0);
         let mut rng = StdRng::seed_from_u64(0);
         let opt: Adam<ToyModel<F, D>> = Adam::new(AdamConfig {
