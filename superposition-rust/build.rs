@@ -56,5 +56,5 @@ pub(crate) const IMPORTANCE_DECAY_FACTOR: f32 = {};
 
     fs::write(&dest_path, parsed_consts).unwrap();
     
-    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=config.toml");
 }
